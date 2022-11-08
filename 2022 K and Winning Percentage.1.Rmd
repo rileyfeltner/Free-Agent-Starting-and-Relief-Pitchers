@@ -1,0 +1,95 @@
+---
+title: "2022 K and Winning Percentage + FA P"
+author: "Riley Feltner"
+date: "2022-11-07"
+output: html_document
+---
+
+```{r}
+# install.packages("devtools")
+devtools::install_github("camdenk/mlbplotR")
+stats <- read.csv("FanGraphs Leaderboard 2022 Team Pitching.csv")
+stats1 <- read.csv("FanGraphs Leaderboard (2).csv")
+merged<- merge(stats[,c(1,2,8,21)], stats1[,c(1,6)], by = "Team")
+```
+
+
+```{r}
+library(mlbplotR)
+library(ggplot2)
+library(mlbplotR)
+library(ggpubr)
+
+filtered_stats <- merged %>%
+  filter(Team != "---")
+
+filtered_stats %>% 
+  ggplot(aes(x = K.Perc, y = Winning.Perc)) +
+  geom_smooth(method = "lm", se=FALSE, color="black", formula = y ~ x) +
+  geom_mlb_logos(aes(team_abbr = Team), width = 0.06, alpha = 0.6) +
+  labs(title = "2022 MLB Winning Percentage and Pitcher Strikeout Percentage",
+       y = "Winning Percentage",
+       x = "Strikeout Percentage",
+       caption = "Data: FanGraphs | Riley Feltner || Logos: mlbplotR")+
+  coord_cartesian(ylim = c(0.3, 0.7))+
+  theme_minimal()+
+  stat_cor(aes(label = ..rr.label..), color = "red", geom = "label")
+    
+
+```
+
+```{r}
+allpitchers <- read.csv("FanGraphs Leaderboard (3).csv")
+FASP <- read.csv("FA Starting Pitchers.csv")
+MergedFASP <- merge(FASP, allpitchers, by = "Name")
+
+FARP <- read.csv("FA Relief Pitchers.csv")
+MergedFARP <- merge(FARP, allpitchers, by = "Name")
+
+
+w1<-MergedFASP[rev(order(MergedFASP$K.Perc)),] %>% head(15)
+w2 <- w1[-c(1, 7, 12, 13, 15),]
+
+w3 <- MergedFARP[rev(order(MergedFARP$K.Perc)),] %>% head(18)
+w4 <- w3[-c(1, 3, 9, 10, 15:18),]
+```
+
+
+```{r}
+library(scales)
+w2 %>%
+  mutate(playerid = as.double(playerid))%>%
+  left_join(mlbplotR::load_headshots(), by = c("playerid" = "fangraphs_id"))%>%
+  ggplot(aes(x= reorder(Name, K.Perc), y=K.Perc)) +
+  geom_col(width = .5, alpha = 0.75, fill = "blue4", color = "red")+
+  geom_mlb_headshots(aes(player_id = savant_id), height = 0.18)+
+  scale_x_discrete(labels = c('Eflin', 'Bassit', 'Eovaldi', 'Manaea', 'Carrasco', 'Kershaw', 'Verlander', 'Rodon', 'Heaney', 'deGrom'))+
+  theme_classic2()+
+  coord_cartesian(ylim = c(0.00, 0.45))+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  labs(title = "Top 10 Strikeout %: Free Agent Starting Pitchers",
+         subtitle = "SP with 50 + Innings Pitched in 2022",
+     y = "Strikeout %",
+     x = "",
+     caption = "Data: FanGraphs & Spotrac | Riley Feltner || Logos: mlbplotR")
+
+```
+
+```{r}
+w4 %>%
+  mutate(playerid = as.double(playerid))%>%
+  left_join(mlbplotR::load_headshots(), by = c("playerid" = "fangraphs_id"))%>%
+  ggplot(aes(x= reorder(Name, K.Perc), y=K.Perc)) +
+  geom_col(width = .5, alpha = 0.75, fill = "darkblue", color = "red")+
+  geom_mlb_headshots(aes(player_id = savant_id), height = 0.17)+
+  scale_x_discrete(labels = c('Moore', 'Givens', 'Chafin','Kimbrel', 'Ottavino',  'Robertson', 'Rogers', 'Suarez', 'Jansen', 'Diaz'))+
+  theme_classic2()+
+  coord_cartesian(ylim = c(0.00, 0.60))+
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1))+
+  labs(title = "Top 10 Strikeout %: Free Agent Relief Pitchers",
+         subtitle = "RP > 30 Innings Pitched in 2022",
+     y = "Strikeout %",
+     x = "",
+     caption = "Data: FanGraphs & Spotrac | Riley Feltner || Logos: mlbplotR")
+```
+
